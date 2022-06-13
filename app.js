@@ -15,12 +15,47 @@ const users =[
     }
 ];
 
+const menuItems = [
+    {
+        id: 1,
+        name: "Biryani", 
+        cost: 250,
+        pic: "/images/biryani.jpg"
+    },
+    {
+        id: 2,
+        name: "Halwa", 
+        cost: 100,
+        pic: "/images/halwa.jpg"
+    },
+    {
+        id: 3,
+        name: "idli", 
+        cost: 250,
+        pic: "/images/idli.jpg"
+    },{
+        id: 4,
+        name: "thali", 
+        cost: 250,
+        pic: "/images/thali.jpg"
+    },
+    {
+        id: 5,
+        name: "Marathi Thali", 
+        cost: 400,
+        pic: "/images/thali.jpg"
+    }
+]
+
 console.log("users currently in the system", users)
 app.get("/", (request,response) => {
     
     response.send("Hello From Backend")
 })
 
+app.get('/menu',(req,res)=>{
+    res.status(200).json(menuItems)
+})
 
 app.post("/login", (req,res)=>{
     //email
@@ -43,6 +78,13 @@ app.post('/register',(req,res)=>{ //localhost:4009/register
     console.log("users ", users)
     res.json({message : "user has been added successfully", user: req.body.user});
 })
+
+
+
+
+
+
+
 
 app.listen(4009);
 console.log("Server is running on port ", 4009);

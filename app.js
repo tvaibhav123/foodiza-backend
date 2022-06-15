@@ -1,3 +1,4 @@
+const { application } = require('express');
 const express = require('express');
 const app = express();
 
@@ -11,7 +12,7 @@ const users =[
         name: "Vaibhav", 
         password: "123456789",
         email: "vaibhav@gmail.com",
-        phoneNumber: 9123456789
+        phoneNumber: 9123456789,
     }
 ];
 
@@ -47,6 +48,10 @@ const menuItems = [
     }
 ]
 
+const orders = [
+    
+];
+
 console.log("users currently in the system", users)
 app.get("/", (request,response) => {
     
@@ -58,8 +63,6 @@ app.get('/menu',(req,res)=>{
 })
 
 app.post("/login", (req,res)=>{
-    //email
-    //password
     console.log(req.body.email, req.body.password);
     const selectedUser  = users.filter(user => user.email === req.body.email && user.password === req.body.password);
     if(selectedUser.length>0) {
@@ -75,11 +78,29 @@ app.post('/register',(req,res)=>{ //localhost:4009/register
     if(req.body.user){
         users.push(req.body.user)
     }
-    console.log("users ", users)
     res.json({message : "user has been added successfully", user: req.body.user});
 })
 
+app.post('/order', (req,res) => {
+    console.log("Order Body", req.body);
+    const order = {
+        orderID : parseInt(Math.random()*1000000000),
+        userEmail : req.body.user.email,
+        items: req.body.items,
+        cartTotal: req.body.cartTotal
+    }
+    orders.push(order);
+    console.log("Order ", orders)
+    res.json({message: "order created successfully"})
+})
 
+app.post('/getOrders',(req,res)=>{
+    let filteredOrders = [] 
+    if(orders.length > 0) {
+       filteredOrders = orders.filter(order => order.userEmail === req.body.email)
+    }
+    res.json({orders: filteredOrders})
+})
 
 
 

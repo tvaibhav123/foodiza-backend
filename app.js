@@ -1,20 +1,12 @@
 const { application } = require('express');
 const express = require('express');
+const { connectToCluster } = require('./Mongo/mongoConnection');
 const app = express();
 
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-const users =[
-    {
-        name: "Vaibhav", 
-        password: "123456789",
-        email: "vaibhav@gmail.com",
-        phoneNumber: 9123456789,
-    }
-];
 
 const menuItems = [
     {
@@ -52,7 +44,7 @@ const orders = [
     
 ];
 
-console.log("users currently in the system", users)
+/* console.log("users currently in the system", users) */
 app.get("/", (request,response) => {
     
     response.send("Hello From Backend")
@@ -62,26 +54,56 @@ app.get('/menu',(req,res)=>{
     res.status(200).json(menuItems)
 })
 
-app.post("/login", (req,res)=>{
+app.post("/login",async (req,res)=>{
     console.log(req.body.email, req.body.password);
-    const selectedUser  = users.filter(user => user.email === req.body.email && user.password === req.body.password);
-    if(selectedUser.length>0) {
-        res.status(200).json({message:"user found",user:selectedUser});
-    }else {
-        res.status(404).json({message: "Invalid username or password"});
-    }
+    //const selectedUser  = users.filter(user => user.email === req.body.email && user.password === req.body.password);
+    try {
+        mongoClient = await connectToCluster();
+        const db = mongoClient.db('FoodOrder');
+        const collection = db.collection('registered_users');
+        const found_user = await collection.findOne({email: req.body.email, password:req.body.password})
+            if(found_user){
+                res.status(200).json({message:"user found",user:found_user});
+            }else {
+                res.status(404).json({message: "Invalid username or password"});
+            }
+        }
+        catch {
+            res.status(420).json({message : "Error Occured while Loggin In user.", user: req.body});
+        }
+        finally {
+            await mongoClient.close();
+        }
+   
 })
 
 
-app.post('/register',(req,res)=>{ //localhost:4009/register
+app.post('/register', async (req,res)=>{ //localhost:4009/register
     console.log("Req.body", req.body)
     if(req.body.user){
-        users.push(req.body.user)
+        let mongoClient;
+        try {
+            mongoClient = await connectToCluster();
+            const db = mongoClient.db('FoodOrder');
+            const collection = db.collection('registered_users');
+            const found_user = await collection.findOne({email: req.body.user.email})
+            if(found_user){
+                res.status(420).json({message : "User Already Exists in the Db. Please try loggin In", user: req.body.user});
+            }else {
+                const insertedDocument = await collection.insertOne(req.body.user);
+                res.json({message : "user has been added successfully", user: req.body.user});
+            }
+        }
+        catch {
+            res.status(420).json({message : "Error Occured while inserting user.", user: req.body.user});
+        }
+         finally {
+            await mongoClient.close();
+        }
     }
-    res.json({message : "user has been added successfully", user: req.body.user});
 })
 
-app.post('/order', (req,res) => {
+app.post('/order',async (req,res) => {
     console.log("Order Body", req.body);
     const order = {
         orderID : parseInt(Math.random()*1000000000),
@@ -89,17 +111,46 @@ app.post('/order', (req,res) => {
         items: req.body.items,
         cartTotal: req.body.cartTotal
     }
-    orders.push(order);
-    console.log("Order ", orders)
-    res.json({message: "order created successfully"})
+    /* orders.push(order); */
+    let mongoClient;
+        try {
+            mongoClient = await connectToCluster();
+            const db = mongoClient.db('FoodOrder');
+            const collection = db.collection('orders');
+            const insertedDocument = await collection.insertOne(order);
+            res.json({message: "order created successfully"})
+        }
+        catch {
+            res.status(420).json({message : "Error Occured while Creating Order.", order: req.body});
+        }
+         finally {
+            await mongoClient.close();
+        }
+    
 })
 
-app.post('/getOrders',(req,res)=>{
+app.post('/getOrders',async (req,res)=>{
     let filteredOrders = [] 
-    if(orders.length > 0) {
+    /* if(orders.length > 0) {
        filteredOrders = orders.filter(order => order.userEmail === req.body.email)
+       
     }
-    res.json({orders: filteredOrders})
+    res.json({orders: filteredOrders}) */
+
+    let mongoClient;
+        try {
+            mongoClient = await connectToCluster();
+            const db = mongoClient.db('FoodOrder');
+            const collection = db.collection('orders');
+            const found_orders = await collection.find({userEmail: req.body.email}).toArray();
+            res.json({message: "Orders", orders: found_orders})
+        }
+        catch {
+            res.status(420).json({message : "Error Occured while fetching orders.", order: req.body});
+        }
+         finally {
+            await mongoClient.close();
+        }
 })
 
 
